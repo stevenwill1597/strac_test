@@ -1,6 +1,7 @@
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
 import os.path
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
@@ -18,3 +19,15 @@ def authenticate():
     with open('token.json', 'w') as token:
       token.write(creds.to_json())
     return creds
+
+def list_files(creds):
+  service = build('drive', 'v3', credentials=creds)
+  results = service.files().list(
+    pageSize=10, fields="nextPageToken, files(id, name, mimeType, modifiedTime)").execute()
+  items = results.get('files', [])
+  if not items:
+    print('No files found.')
+  else:
+    print('Files:')
+    for item in items:
+      print(f"{item['name']} ({item['id']}) - {item['mimeType']} - {item['modifiedTime']}")
