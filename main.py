@@ -2,6 +2,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
 import os.path
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
@@ -31,3 +32,12 @@ def list_files(creds):
     print('Files:')
     for item in items:
       print(f"{item['name']} ({item['id']}) - {item['mimeType']} - {item['modifiedTime']}")
+
+def upload_file(creds, file_path, folder_id=None):
+  service = build('drive', 'v3', credentials=creds)
+  file_metadata = {'name': os.path.basename(file_path)}
+  if folder_id:
+    file_metadata['parents'] = [folder_id]
+  media = MediaFileUpload(file_path, resumable=True)
+  file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+  print(f"File ID: {file.get('id')}")
