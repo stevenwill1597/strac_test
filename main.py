@@ -2,7 +2,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
+from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 import os.path
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
@@ -41,3 +41,13 @@ def upload_file(creds, file_path, folder_id=None):
   media = MediaFileUpload(file_path, resumable=True)
   file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
   print(f"File ID: {file.get('id')}")
+
+def download_file(creds, file_id, destination):
+  service = build('drive', 'v3', credentials=creds)
+  request = service.files().get_media(fileId=file_id)
+  with open(destination, 'wb') as fh:
+    downloader = MediaIoBaseDownload(fh, request)
+    done = False
+    while done is False:
+      status, done = downloader.next_chunk()
+      print(f"Download {int(status.progress() * 100)}%.")
