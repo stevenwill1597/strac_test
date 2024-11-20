@@ -32,6 +32,7 @@ def list_files(creds):
     print('Files:')
     for item in items:
       print(f"{item['name']} ({item['id']}) - {item['mimeType']} - {item['modifiedTime']}")
+  return items
 
 def upload_file(creds, file_path, folder_id=None):
   service = build('drive', 'v3', credentials=creds)
@@ -50,9 +51,50 @@ def download_file(creds, file_id, destination):
     done = False
     while done is False:
       status, done = downloader.next_chunk()
-      print(f"Download {int(status.progress) * 100}%")
+      print(f"Download {int(status.progress() * 100)}%")
 
 def delete_file(creds, file_id):
   service = build('drive', 'v3', credentials=creds)
   service.files().delete(fileId=file_id).execute()
   print(f"File {file_id} deleted.")
+
+def main():
+  # Authenticate and get credentials
+  creds = authenticate()
+  if not creds or not creds.valid:
+    print("Failed to authenticate.")
+    return
+
+  # List files
+  print("Listing files:")
+  list_files(creds)
+
+  # Upload a file
+  file_path = 'test.txt'
+  print(f"Uploading file: {file_path}")
+  upload_file(creds, file_path)
+
+  # List files again to see the uploaded file
+  print("Listing files after upload:")
+  items = list_files(creds)
+
+  # Find the uploaded file ID
+  file_id = None
+  for item in items:
+    if item['name'] == os.path.basename(file_path):
+      file_id = item['id']
+      break
+
+  if file_id:
+    # Download the file
+    print(f"Downloading file with ID: {file_id}")
+    download_file(creds, file_id, 'download_test.txt')
+
+    # Delete the file
+    print(f"Deleting file with ID: {file_id}")
+    delete_file(creds, file_id)
+  else:
+    print("Uploaded file not found.")
+
+if __name__ == "__main__":
+  main()
