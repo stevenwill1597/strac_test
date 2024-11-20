@@ -19,7 +19,7 @@ def authenticate():
       creds = flow.run_local_server(port=0)
     with open('token.json', 'w') as token:
       token.write(creds.to_json())
-    return creds
+  return creds
 
 def list_files(creds):
   service = build('drive', 'v3', credentials=creds)
@@ -50,7 +50,7 @@ def download_file(creds, file_id, destination):
     done = False
     while done is False:
       status, done = downloader.next_chunk()
-      print(f"Download {int(status.progress() * 100)}%.")
+      print(f"Download {int(status.progress) * 100}%")
 
 def delete_file(creds, file_id):
   service = build('drive', 'v3', credentials=creds)
