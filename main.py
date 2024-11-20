@@ -7,6 +7,7 @@ from googleapiclient.errors import HttpError
 import os.path
 import logging
 
+# Define the scope for Google Drive API access
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
 def authenticate():
@@ -18,14 +19,18 @@ def authenticate():
   """
   creds = None
   try:
+    # Check if token.json exists to use existing credentials
     if os.path.exists('token.json'):
       creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    # Refresh or obtain new credentials if necessary
     if not creds or not creds.valid:
       if creds and creds.expired and creds.refresh_token:
         creds.refresh(Request())
       else:
+        # Run local server to obtain new credentials
         flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
         creds = flow.run_local_server(port=0)
+      # Save the credentials for future use
       with open('token.json', 'w') as token:
         token.write(creds.to_json())
   except Exception as e:
@@ -43,7 +48,9 @@ def list_files(creds):
     list: A list of files in the user's Google Drive.
   """
   try:
+    # Build the Google Drive service
     service = build('drive', 'v3', credentials=creds)
+    # List files with specific fields
     results = service.files().list(
       pageSize=10, fields="nextPageToken, files(id, name, mimeType, modifiedTime)").execute()
     items = results.get('files', [])
@@ -52,6 +59,7 @@ def list_files(creds):
     else:
       print('Files:')
       for item in items:
+        # Print file details
         print(f"{item['name']} ({item['id']}) - {item['mimeType']} - {item['modifiedTime']}")
     return items
   except HttpError as error:
@@ -68,10 +76,13 @@ def upload_file(creds, file_path, folder_id=None):
     folder_id (str, optional): The ID of the folder to upload the file to.
   """
   try:
+    # Build the Google Drive service
     service = build('drive', 'v3', credentials=creds)
+    # Prepare file metadata
     file_metadata = {'name': os.path.basename(file_path)}
     if folder_id:
       file_metadata['parents'] = [folder_id]
+    # Upload the file
     media = MediaFileUpload(file_path, resumable=True)
     file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
     print(f"File ID: {file.get('id')}")
@@ -88,12 +99,15 @@ def download_file(creds, file_id, destination):
     destination (str): The path to save the downloaded file.
   """
   try:
+    # Build the Google Drive service
     service = build('drive', 'v3', credentials=creds)
+    # Request to download the file
     request = service.files().get_media(fileId=file_id)
     with open(destination, 'wb') as fh:
       downloader = MediaIoBaseDownload(fh, request)
       done = False
       while done is False:
+        # Download the file in chunks
         done = downloader.next_chunk()
         print(f"Downloading...")
   except HttpError as error:
@@ -108,7 +122,9 @@ def delete_file(creds, file_id):
     file_id (str): The ID of the file to delete.
   """
   try:
+    # Build the Google Drive service
     service = build('drive', 'v3', credentials=creds)
+    # Delete the file
     service.files().delete(fileId=file_id).execute()
     print(f"File {file_id} deleted.")
   except HttpError as error:
